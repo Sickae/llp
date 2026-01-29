@@ -31,10 +31,10 @@ This document outlines the development milestones for the Local Log Processor, a
 
 ## Milestone 5: Visualizations & Extras
 *Goal: Enhance user experience with visual insights and real-time features.*
-- [ ] Implement a frequency histogram (log counts over time).
-- [ ] Add "Tail -f" support for real-time log monitoring.
-- [ ] UI Polish: Color-coded log levels, dark mode support, and custom themes.
-- [ ] Export functionality (export filtered results to CSV/JSON).
+- [x] Implement a frequency histogram logic (log counts over time).
+- [x] Add "Tail -f" support for real-time log monitoring.
+- [x] UI Polish: Color-coded log levels.
+- [x] Export functionality (export filtered results to CSV/JSON).
 
 ## Milestone 6: Release & Documentation
 *Goal: Finalize the product for user consumption.*

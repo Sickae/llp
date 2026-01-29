@@ -17,18 +17,27 @@ public class LogFileReader : IDisposable
     private readonly IndexService _indexService = new();
     private bool _isIndexing = false;
     private Task? _indexingTask;
+    private FileSystemWatcher? _watcher;
+    private bool _isTailEnabled;
+    private string? _filePath;
+
+    public event Action? FileUpdated;
 
     public bool IsIndexing => _isIndexing;
 
-    public ILogParser Parser
+    public void SetTailEnabled(bool enabled)
     {
-        get => _parser;
-        set => _parser = value;
+        _isTailEnabled = enabled;
+        if (_watcher != null)
+        {
+            _watcher.EnableRaisingEvents = enabled;
+        }
     }
 
     public async Task OpenFileAsync(string filePath, IProgress<double>? progress = null)
     {
         Dispose();
+        _filePath = filePath;
         _currentFilter = string.Empty;
         _query = new FullTextQuery(string.Empty);
         _filteredIndices.Clear();
@@ -55,6 +64,69 @@ public class LogFileReader : IDisposable
         // Start background indexing
         _indexService.Initialize(filePath);
         _indexingTask = Task.Run(() => BackgroundIndex());
+
+        SetupWatcher(filePath);
+    }
+
+    private void SetupWatcher(string filePath)
+    {
+        var directory = Path.GetDirectoryName(filePath);
+        var fileName = Path.GetFileName(filePath);
+        if (directory == null) return;
+
+        _watcher = new FileSystemWatcher(directory, fileName);
+        _watcher.NotifyFilter = NotifyFilters.Size | NotifyFilters.LastWrite;
+        _watcher.Changed += OnFileChanged;
+        _watcher.EnableRaisingEvents = _isTailEnabled;
+    }
+
+    private void OnFileChanged(object sender, FileSystemEventArgs e)
+    {
+        if (!_isTailEnabled || _filePath == null) return;
+
+        // Small delay to allow file to be unlocked
+        Thread.Sleep(100);
+
+        long newLength = new FileInfo(_filePath).Length;
+        if (newLength <= _fileLength) return;
+
+        using var fs = new FileStream(_filePath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
+        fs.Seek(_fileLength, SeekOrigin.Begin);
+        
+        long offset = _fileLength;
+        int b;
+        var newLines = new List<(string Content, int Index)>();
+
+        while ((b = fs.ReadByte()) != -1)
+        {
+            offset++;
+            if (b == '\n')
+            {
+                int index = _lineOffsets.Count;
+                _lineOffsets.Add(offset);
+                
+                // Index new line
+                var line = GetRawLine(index);
+                newLines.Add((line, index));
+
+                // If filter active, check if match
+                if (!string.IsNullOrEmpty(_currentFilter))
+                {
+                    var entry = GetEntryInternal(index);
+                    if (_query.IsMatch(entry))
+                    {
+                        _filteredIndices.Add(index);
+                    }
+                }
+            }
+        }
+        
+        _fileLength = newLength;
+        if (newLines.Count > 0)
+        {
+            _indexService.AddEntries(newLines);
+            FileUpdated?.Invoke();
+        }
     }
 
     private void BackgroundIndex()
@@ -179,6 +251,8 @@ public class LogFileReader : IDisposable
 
     public void Dispose()
     {
+        _watcher?.Dispose();
+        _watcher = null;
         _mmf?.Dispose();
         _mmf = null;
         _lineOffsets.Clear();

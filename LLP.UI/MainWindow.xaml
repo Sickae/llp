@@ -7,9 +7,11 @@
         xmlns:vm="clr-namespace:LLP.UI.ViewModels"
         xmlns:services="clr-namespace:LLP.UI.Services"
         mc:Ignorable="d"
-        Title="Local Log Processor" Height="600" Width="1000">
+        Title="Local Log Processor" Height="800" Width="1200"
+        xmlns:lvc="clr-namespace:LiveChartsCore.SkiaSharpView.WPF;assembly=LiveChartsCore.SkiaSharpView.WPF">
     <Window.Resources>
         <BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter"/>
+        <services:LogLevelToColorConverter x:Key="LogLevelToColorConverter"/>
     </Window.Resources>
     <Window.DataContext>
         <vm:MainViewModel />
@@ -26,6 +28,8 @@
                 <ColumnDefinition Width="Auto"/>
                 <ColumnDefinition Width="*"/>
                 <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition Width="Auto"/>
             </Grid.ColumnDefinitions>
             <Button Content="Open Log File" Command="{Binding OpenFileCommand}" Padding="10,5" Grid.Column="0"/>
             <TextBox Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged}" Margin="10,0" Grid.Column="1" VerticalContentAlignment="Center">
@@ -34,15 +38,32 @@
                 </TextBox.InputBindings>
             </TextBox>
             <Button Content="Search" Command="{Binding SearchCommand}" Padding="10,5" Grid.Column="2"/>
+            <Button Content="Export" Command="{Binding ExportCommand}" Padding="10,5" Margin="5,0" Grid.Column="3"/>
+            <ToggleButton Content="Tail -f" IsChecked="{Binding IsTailEnabled}" Command="{Binding ToggleTailCommand}" Padding="10,5" Grid.Column="4"/>
         </Grid>
 
         <Grid Grid.Row="1">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="150"/>
+                <RowDefinition Height="*"/>
+            </Grid.RowDefinitions>
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="200"/>
                 <ColumnDefinition Width="*"/>
             </Grid.ColumnDefinitions>
 
-            <GroupBox Header="Fields" Margin="5" Grid.Column="0">
+            <!-- Histogram Visualization (Placeholder for now due to assembly loading issues in some environments) -->
+            <Border Grid.Row="0" Grid.Column="1" Background="#F0F0F0" Margin="5">
+                <TextBlock Text="Histogram: Log counts over time" HorizontalAlignment="Center" VerticalAlignment="Center" Foreground="Gray"/>
+            </Border>
+
+            <!-- <lvc:CartesianChart Grid.Row="0" Grid.Column="1" 
+                                Series="{Binding Histogram.Series}"
+                                XAxes="{Binding Histogram.XAxes}"
+                                YAxes="{Binding Histogram.YAxes}"
+                                Margin="5"/> -->
+
+            <GroupBox Header="Fields" Margin="5" Grid.Row="0" Grid.RowSpan="2" Grid.Column="0">
                 <ItemsControl ItemsSource="{Binding Fields}">
                     <ItemsControl.ItemTemplate>
                         <DataTemplate>
@@ -58,12 +79,13 @@
                 </ItemsControl>
             </GroupBox>
 
-            <ListBox Grid.Column="1" ItemsSource="{Binding LogLines}" VirtualizingStackPanel.IsVirtualizing="True" VirtualizingStackPanel.VirtualizationMode="Recycling">
+            <ListBox Grid.Row="1" Grid.Column="1" ItemsSource="{Binding LogLines}" VirtualizingStackPanel.IsVirtualizing="True" VirtualizingStackPanel.VirtualizationMode="Recycling">
                 <ListBox.ItemTemplate>
                     <DataTemplate>
                         <StackPanel Orientation="Horizontal">
                             <TextBlock Text="{Binding Timestamp, StringFormat='{}{0:yyyy-MM-dd HH:mm:ss}'}" Foreground="Gray" Margin="0,0,10,0" FontFamily="Consolas"/>
-                            <TextBlock Text="{Binding Level}" Width="50" Margin="0,0,10,0" FontWeight="Bold" FontFamily="Consolas"/>
+                            <TextBlock Text="{Binding Level}" Width="50" Margin="0,0,10,0" FontWeight="Bold" FontFamily="Consolas"
+                                       Foreground="{Binding Level, Converter={StaticResource LogLevelToColorConverter}}"/>
                             <TextBlock FontFamily="Consolas"
                                        services:TextBlockExtensions.OriginalText="{Binding Message}"
                                        services:TextBlockExtensions.HighlightText="{Binding DataContext.SearchText, RelativeSource={RelativeSource AncestorType=Window}}"/>

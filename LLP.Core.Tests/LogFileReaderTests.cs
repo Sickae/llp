@@ -38,12 +38,37 @@ public class IndexServiceTests : IDisposable
         Assert.Contains(3, results);
     }
 
-    public void Dispose()
+    [Fact]
+    public async Task Tail_DetectsNewLines()
     {
-        _indexService.Dispose();
-        if (File.Exists(_tempDb)) File.Delete(_tempDb);
-        string idxDb = _tempDb + ".idx.db";
-        if (File.Exists(idxDb)) File.Delete(idxDb);
+        string logFile = Path.GetTempFileName();
+        File.WriteAllText(logFile, "2024-01-29 10:00:00 [INFO] Line 1\n");
+        
+        using var reader = new LogFileReader();
+        await reader.OpenFileAsync(logFile);
+        reader.SetTailEnabled(true);
+        
+        bool updated = false;
+        reader.FileUpdated += () => updated = true;
+        
+        Assert.Equal(1, reader.LineCount);
+        
+        // Append a new line
+        File.AppendAllText(logFile, "2024-01-29 10:00:01 [INFO] Line 2\n");
+        
+        // Wait for FileSystemWatcher and processing
+        int attempts = 0;
+        while (!updated && attempts < 20)
+        {
+            await Task.Delay(100);
+            attempts++;
+        }
+        
+        Assert.True(updated, "FileUpdated event was not raised");
+        Assert.Equal(2, reader.LineCount);
+        Assert.Contains("Line 2", reader.GetEntry(1).Message);
+        
+        if (File.Exists(logFile)) File.Delete(logFile);
     }
 }
 

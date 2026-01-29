@@ -6,6 +6,8 @@ using LLP.UI.Services;
 using Microsoft.Win32;
 using System.Collections.ObjectModel;
 using System.Collections.Specialized;
+using System.IO;
+using System.Text;
 
 namespace LLP.UI.ViewModels;
 
@@ -18,14 +20,42 @@ public class MainViewModel : INotifyPropertyChanged, IDisposable
     private bool _isLoading;
     private int _lineCount;
     private ObservableCollection<FieldInfoViewModel> _fields = new();
+    private HistogramViewModel _histogram = new();
+    private bool _isTailEnabled;
 
     public MainViewModel()
     {
         OpenFileCommand = new RelayCommand(async _ => await OpenFileAsync());
         SearchCommand = new RelayCommand(_ => Search());
         ApplyFilterCommand = new RelayCommand(p => ApplyFilter(p as string));
+        ExportCommand = new RelayCommand(_ => Export());
+        ToggleTailCommand = new RelayCommand(_ => IsTailEnabled = !IsTailEnabled);
+        _logReader.FileUpdated += () => 
+        {
+            App.Current.Dispatcher.Invoke(() => 
+            {
+                LogLines.Refresh();
+                LineCount = _logReader.LineCount;
+                UpdateHistogram();
+            });
+        };
         LogLines = new VirtualizingCollection(_logReader);
     }
+
+    public HistogramViewModel Histogram => _histogram;
+
+    public bool IsTailEnabled
+    {
+        get => _isTailEnabled;
+        set 
+        { 
+            _isTailEnabled = value; 
+            OnPropertyChanged(); 
+            _logReader.SetTailEnabled(value);
+        }
+    }
+
+    public ICommand ToggleTailCommand { get; }
 
     public ObservableCollection<FieldInfoViewModel> Fields => _fields;
 
@@ -67,11 +97,48 @@ public class MainViewModel : INotifyPropertyChanged, IDisposable
 
     public ICommand OpenFileCommand { get; }
     public ICommand SearchCommand { get; }
+    public ICommand ExportCommand { get; }
+
+    private void Export()
+    {
+        var saveFileDialog = new SaveFileDialog
+        {
+            Filter = "CSV files (*.csv)|*.csv|JSON files (*.json)|*.json",
+            FileName = "filtered_logs"
+        };
+
+        if (saveFileDialog.ShowDialog() == true)
+        {
+            var extension = Path.GetExtension(saveFileDialog.FileName).ToLower();
+            var entries = new List<LogEntry>();
+            for (int i = 0; i < _logReader.LineCount; i++)
+            {
+                entries.Add(_logReader.GetEntry(i));
+            }
+
+            if (extension == ".json")
+            {
+                var json = System.Text.Json.JsonSerializer.Serialize(entries, new System.Text.Json.JsonSerializerOptions { WriteIndented = true });
+                File.WriteAllText(saveFileDialog.FileName, json);
+            }
+            else
+            {
+                var sb = new StringBuilder();
+                sb.AppendLine("Timestamp,Level,Message");
+                foreach (var entry in entries)
+                {
+                    sb.AppendLine($"\"{entry.Timestamp}\",\"{entry.Level}\",\"{entry.Message?.Replace("\"", "\"\"")}\"");
+                }
+                File.WriteAllText(saveFileDialog.FileName, sb.ToString());
+            }
+        }
+    }
 
     private void Search()
     {
         _logReader.Search(SearchText);
         LogLines.Refresh();
+        UpdateHistogram();
         LineCount = _logReader.LineCount;
     }
 
@@ -107,8 +174,21 @@ public class MainViewModel : INotifyPropertyChanged, IDisposable
             ExtractFields();
             LineCount = _logReader.LineCount;
             LogLines.Refresh();
+            UpdateHistogram();
             IsLoading = false;
         }
+    }
+
+    private void UpdateHistogram()
+    {
+        var timestamps = new List<DateTime>();
+        for (int i = 0; i < Math.Min(10000, _logReader.LineCount); i++)
+        {
+            var entry = _logReader.GetEntry(i);
+            if (entry.Timestamp.HasValue)
+                timestamps.Add(entry.Timestamp.Value);
+        }
+        Histogram.UpdateData(timestamps);
     }
 
     private void ExtractFields()
