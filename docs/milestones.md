@@ -41,3 +41,7 @@ This document outlines the development milestones for the Local Log Processor, a
 - [x] Complete User Manual and Technical Documentation.
 - [x] Final performance benchmarking and bug fixing.
 - [x] Package as a portable executable for Windows.
+
+## Milestone 7: Extra Features
+*Extra features that are not required for the MVP.*
+- [x] Implement a "Log Detail" panel to view all properties of a selected entry.

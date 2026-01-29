@@ -23,6 +23,7 @@ public class MainViewModel : INotifyPropertyChanged, IDisposable
     private HistogramViewModel _histogram = new();
     private bool _isTailEnabled;
     private bool _isDescending;
+    private LogEntry? _selectedLogEntry;
 
     public MainViewModel()
     {
@@ -44,6 +45,12 @@ public class MainViewModel : INotifyPropertyChanged, IDisposable
             });
         };
         LogLines = new VirtualizingCollection(_logReader);
+    }
+
+    public LogEntry? SelectedLogEntry
+    {
+        get => _selectedLogEntry;
+        set { _selectedLogEntry = value; OnPropertyChanged(); }
     }
 
     public bool IsDescending

@@ -10,6 +10,7 @@ LLP is a high-performance local log analysis tool designed to handle large files
 - **Real-Time Monitoring**: "Tail -f" mode to watch logs as they are written.
 - **Structured Parsing**: Automatically detects and parses JSON and common Regex log formats.
 - **Visualizations**: Histogram of log frequency over time.
+- **Log Details**: Select any log line to view its full properties in a dedicated panel.
 - **Export**: Save filtered results to CSV or JSON.
 
 ## Getting Started
@@ -44,6 +45,17 @@ Filter by time or numeric values:
 ## Real-Time Monitoring (Tail -f)
 
 Toggle the "Tail -f" button to automatically scroll to and display new lines as they are appended to the log file.
+
+## Log Details Panel
+
+When you select a log entry in the main list, a "Log Detail" panel appears on the right. This panel displays:
+- **Timestamp**: The extracted date and time.
+- **Level**: The log severity (Error, Info, etc.).
+- **Message**: The main log message.
+- **Fields**: A list of all structured fields extracted from the log (especially useful for JSON logs).
+- **Raw Content**: The original, unparsed line from the file.
+
+You can resize this panel using the splitter between the log list and the detail view.
 
 ## Exporting Data
 

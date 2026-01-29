@@ -12,6 +12,7 @@
     <Window.Resources>
         <BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter"/>
         <services:LogLevelToColorConverter x:Key="LogLevelToColorConverter"/>
+        <services:SelectedToVisibilityConverter x:Key="SelectedToVisibilityConverter"/>
     </Window.Resources>
     <Window.DataContext>
         <vm:MainViewModel />
@@ -64,10 +65,12 @@
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="200"/>
                 <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition Width="300" MinWidth="100"/>
             </Grid.ColumnDefinitions>
 
             <!-- Histogram Visualization -->
-            <Border x:Name="HistogramContainer" Grid.Row="0" Grid.Column="1" Background="#F0F0F0" Margin="5">
+            <Border x:Name="HistogramContainer" Grid.Row="0" Grid.Column="1" Grid.ColumnSpan="3" Background="#F0F0F0" Margin="5">
                 <TextBlock Text="Histogram: Log counts over time" HorizontalAlignment="Center" VerticalAlignment="Center" Foreground="Gray"/>
             </Border>
 
@@ -87,7 +90,9 @@
                 </ItemsControl>
             </GroupBox>
 
-            <ListBox x:Name="LogListBox" Grid.Row="1" Grid.Column="1" ItemsSource="{Binding LogLines}" VirtualizingStackPanel.IsVirtualizing="True" VirtualizingStackPanel.VirtualizationMode="Recycling">
+            <ListBox x:Name="LogListBox" Grid.Row="1" Grid.Column="1" ItemsSource="{Binding LogLines}" 
+                     SelectedItem="{Binding SelectedLogEntry}"
+                     VirtualizingStackPanel.IsVirtualizing="True" VirtualizingStackPanel.VirtualizationMode="Recycling">
                 <ListBox.ItemTemplate>
                     <DataTemplate>
                         <StackPanel Orientation="Horizontal">
@@ -101,6 +106,53 @@
                     </DataTemplate>
                 </ListBox.ItemTemplate>
             </ListBox>
+
+            <GridSplitter Grid.Row="1" Grid.Column="2" Width="5" HorizontalAlignment="Stretch" Background="LightGray"/>
+
+            <GroupBox Header="Log Detail" Grid.Row="1" Grid.Column="3" Margin="5">
+                <GroupBox.Style>
+                    <Style TargetType="GroupBox">
+                        <Setter Property="Visibility" Value="Collapsed"/>
+                        <Style.Triggers>
+                            <DataTrigger Binding="{Binding SelectedLogEntry, Converter={StaticResource SelectedToVisibilityConverter}}" Value="Visible">
+                                <Setter Property="Visibility" Value="Visible"/>
+                            </DataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </GroupBox.Style>
+                <ScrollViewer VerticalScrollBarVisibility="Auto">
+                    <StackPanel Margin="5">
+                        <TextBlock Text="Timestamp:" FontWeight="Bold" Margin="0,5,0,0"/>
+                        <TextBlock Text="{Binding SelectedLogEntry.Timestamp, StringFormat='{}{0:yyyy-MM-dd HH:mm:ss.fff}'}" TextWrapping="Wrap"/>
+
+                        <TextBlock Text="Level:" FontWeight="Bold" Margin="0,5,0,0"/>
+                        <TextBlock Text="{Binding SelectedLogEntry.Level}" FontWeight="Bold" 
+                                   Foreground="{Binding SelectedLogEntry.Level, Converter={StaticResource LogLevelToColorConverter}}"/>
+
+                        <TextBlock Text="Message:" FontWeight="Bold" Margin="0,5,0,0"/>
+                        <TextBox Text="{Binding SelectedLogEntry.Message, Mode=OneWay}" IsReadOnly="True" TextWrapping="Wrap" BorderThickness="0" Background="Transparent"/>
+
+                        <TextBlock Text="Fields:" FontWeight="Bold" Margin="0,10,0,5"/>
+                        <ItemsControl ItemsSource="{Binding SelectedLogEntry.Fields}">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <Grid Margin="0,2">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="Auto" MinWidth="80"/>
+                                            <ColumnDefinition Width="*"/>
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock Text="{Binding Key, StringFormat='{}{0}:'}" FontWeight="SemiBold" Grid.Column="0" Margin="0,0,5,0"/>
+                                        <TextBox Text="{Binding Value, Mode=OneWay}" IsReadOnly="True" TextWrapping="Wrap" Grid.Column="1" BorderThickness="0" Background="Transparent"/>
+                                    </Grid>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+
+                        <TextBlock Text="Raw Content:" FontWeight="Bold" Margin="0,10,0,5"/>
+                        <TextBox Text="{Binding SelectedLogEntry.RawContent, Mode=OneWay}" IsReadOnly="True" TextWrapping="Wrap" FontFamily="Consolas" FontSize="11" Background="#F8F8F8"/>
+                    </StackPanel>
+                </ScrollViewer>
+            </GroupBox>
         </Grid>
 
         <StatusBar Grid.Row="2">
