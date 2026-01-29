@@ -22,6 +22,7 @@ public class MainViewModel : INotifyPropertyChanged, IDisposable
     private ObservableCollection<FieldInfoViewModel> _fields = new();
     private HistogramViewModel _histogram = new();
     private bool _isTailEnabled;
+    private bool _isDescending;
 
     public MainViewModel()
     {
@@ -43,6 +44,18 @@ public class MainViewModel : INotifyPropertyChanged, IDisposable
             });
         };
         LogLines = new VirtualizingCollection(_logReader);
+    }
+
+    public bool IsDescending
+    {
+        get => _isDescending;
+        set
+        {
+            _isDescending = value;
+            _logReader.IsDescending = value;
+            OnPropertyChanged();
+            LogLines.Refresh();
+        }
     }
 
     public HistogramViewModel Histogram => _histogram;

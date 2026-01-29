@@ -20,10 +20,17 @@ public class LogFileReader : IDisposable
     private FileSystemWatcher? _watcher;
     private bool _isTailEnabled;
     private string? _filePath;
+    private bool _isDescending;
 
     public event Action? FileUpdated;
 
     public bool IsIndexing => _isIndexing;
+
+    public bool IsDescending
+    {
+        get => _isDescending;
+        set => _isDescending = value;
+    }
 
     public void SetTailEnabled(bool enabled)
     {
@@ -244,7 +251,8 @@ public class LogFileReader : IDisposable
 
     public LogEntry GetEntry(int index)
     {
-        int actualIndex = string.IsNullOrEmpty(_currentFilter) ? index : _filteredIndices[index];
+        int effectiveIndex = _isDescending ? (LineCount - 1 - index) : index;
+        int actualIndex = string.IsNullOrEmpty(_currentFilter) ? effectiveIndex : _filteredIndices[effectiveIndex];
         return GetEntryInternal(actualIndex);
     }
 

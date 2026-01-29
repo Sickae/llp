@@ -30,6 +30,7 @@
                 <ColumnDefinition Width="Auto"/>
                 <ColumnDefinition Width="Auto"/>
                 <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition Width="Auto"/>
             </Grid.ColumnDefinitions>
             <Button Content="Open Log File" Command="{Binding OpenFileCommand}" Padding="10,5" Grid.Column="0"/>
             <TextBox Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged}" Margin="10,0" Grid.Column="1" VerticalContentAlignment="Center">
@@ -39,7 +40,8 @@
             </TextBox>
             <Button Content="Search" Command="{Binding SearchCommand}" Padding="10,5" Grid.Column="2"/>
             <Button Content="Export" Command="{Binding ExportCommand}" Padding="10,5" Margin="5,0" Grid.Column="3"/>
-            <ToggleButton IsChecked="{Binding IsTailEnabled}" Padding="10,5" Grid.Column="4">
+            <CheckBox Content="Descending" IsChecked="{Binding IsDescending}" Margin="5,0" VerticalAlignment="Center" Grid.Column="4"/>
+            <ToggleButton IsChecked="{Binding IsTailEnabled}" Padding="10,5" Grid.Column="5">
                 <ToggleButton.Style>
                     <Style TargetType="ToggleButton">
                         <Setter Property="Content" Value="Tail: OFF"/>

@@ -119,6 +119,37 @@ public class LogFileReaderTests
     }
 
     [Fact]
+    public async Task GetEntry_RespectsDescendingOrder()
+    {
+        string filePath = Path.GetTempFileName();
+        string content = "Line 1\nLine 2\nLine 3\n";
+        File.WriteAllText(filePath, content);
+        using var reader = new LogFileReader();
+
+        try
+        {
+            await reader.OpenFileAsync(filePath);
+            
+            // Default is ascending
+            Assert.Equal("Line 1", reader.GetEntry(0).RawContent);
+            Assert.Equal("Line 3", reader.GetEntry(2).RawContent);
+
+            // Act: Set descending
+            reader.IsDescending = true;
+
+            // Assert
+            Assert.Equal("Line 3", reader.GetEntry(0).RawContent);
+            Assert.Equal("Line 1", reader.GetEntry(2).RawContent);
+        }
+        finally
+        {
+            reader.Dispose();
+            if (File.Exists(filePath)) File.Delete(filePath);
+            if (File.Exists(filePath + ".idx.db")) File.Delete(filePath + ".idx.db");
+        }
+    }
+
+    [Fact]
     public async Task QueryParser_ParsesFieldQuery()
     {
         var query = QueryParser.Parse("level:ERROR");
