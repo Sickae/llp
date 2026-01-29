@@ -8,6 +8,39 @@ namespace LLP.UI.Tests;
 public class LogFileReaderTests
 {
     [Fact]
+    public async Task QueryParser_ParsesFieldQuery()
+    {
+        var query = QueryParser.Parse("level:ERROR");
+        var entry = new LogEntry(0, "raw", Level: "ERROR");
+        Assert.True(query.IsMatch(entry));
+        
+        var entry2 = new LogEntry(0, "raw", Level: "INFO");
+        Assert.False(query.IsMatch(entry2));
+    }
+
+    [Fact]
+    public async Task QueryParser_ParsesNotQuery()
+    {
+        var query = QueryParser.Parse("NOT level:ERROR");
+        var entry = new LogEntry(0, "raw", Level: "INFO");
+        Assert.True(query.IsMatch(entry));
+        
+        var entry2 = new LogEntry(0, "raw", Level: "ERROR");
+        Assert.False(query.IsMatch(entry2));
+    }
+
+    [Fact]
+    public async Task QueryParser_ParsesComparisonQuery()
+    {
+        var query = QueryParser.Parse("timestamp:>2024-01-01");
+        var entry = new LogEntry(0, "raw", Timestamp: new DateTime(2024, 02, 01));
+        Assert.True(query.IsMatch(entry));
+        
+        var entry2 = new LogEntry(0, "raw", Timestamp: new DateTime(2023, 12, 01));
+        Assert.False(query.IsMatch(entry2));
+    }
+
+    [Fact]
     public async Task OpenFileAsync_ScansLinesCorrectly()
     {
         // Arrange

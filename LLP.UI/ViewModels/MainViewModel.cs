@@ -17,13 +17,19 @@ public class MainViewModel : INotifyPropertyChanged, IDisposable
     private double _loadingProgress;
     private bool _isLoading;
     private int _lineCount;
+    private ObservableCollection<FieldInfoViewModel> _fields = new();
 
     public MainViewModel()
     {
         OpenFileCommand = new RelayCommand(async _ => await OpenFileAsync());
         SearchCommand = new RelayCommand(_ => Search());
+        ApplyFilterCommand = new RelayCommand(p => ApplyFilter(p as string));
         LogLines = new VirtualizingCollection(_logReader);
     }
+
+    public ObservableCollection<FieldInfoViewModel> Fields => _fields;
+
+    public ICommand ApplyFilterCommand { get; }
 
     public string FilePath
     {
@@ -67,6 +73,18 @@ public class MainViewModel : INotifyPropertyChanged, IDisposable
         LineCount = _logReader.LineCount;
     }
 
+    private void ApplyFilter(string? filter)
+    {
+        if (string.IsNullOrEmpty(filter)) return;
+        
+        if (string.IsNullOrEmpty(SearchText))
+            SearchText = filter;
+        else
+            SearchText += " " + filter;
+        
+        Search();
+    }
+
     private async Task OpenFileAsync()
     {
         var openFileDialog = new OpenFileDialog
@@ -79,13 +97,35 @@ public class MainViewModel : INotifyPropertyChanged, IDisposable
             FilePath = openFileDialog.FileName;
             IsLoading = true;
             LoadingProgress = 0;
+            Fields.Clear();
 
             var progress = new Progress<double>(p => LoadingProgress = p);
             await _logReader.OpenFileAsync(FilePath, progress);
 
+            ExtractFields();
             LineCount = _logReader.LineCount;
             LogLines.Refresh();
             IsLoading = false;
+        }
+    }
+
+    private void ExtractFields()
+    {
+        var fieldNames = new HashSet<string>();
+        for (int i = 0; i < Math.Min(1000, _logReader.LineCount); i++)
+        {
+            var entry = _logReader.GetEntry(i);
+            if (entry.Level != null) fieldNames.Add("level");
+            if (entry.Fields != null)
+            {
+                foreach (var field in entry.Fields.Keys)
+                    fieldNames.Add(field);
+            }
+        }
+
+        foreach (var name in fieldNames.OrderBy(n => n))
+        {
+            Fields.Add(new FieldInfoViewModel { Name = name });
         }
     }
 

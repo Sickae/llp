@@ -12,7 +12,12 @@ public class LogFileReader : IDisposable
     private readonly List<long> _lineOffsets = new();
     private readonly List<int> _filteredIndices = new();
     private string _currentFilter = string.Empty;
+    private IQuery _query = new FullTextQuery(string.Empty);
     private ILogParser _parser = new RawLogParser();
+    private readonly IndexService _indexService = new();
+    private bool _isIndexed = false;
+
+    public bool IsIndexed => _isIndexed;
 
     public ILogParser Parser
     {
@@ -24,6 +29,7 @@ public class LogFileReader : IDisposable
     {
         Dispose();
         _currentFilter = string.Empty;
+        _query = new FullTextQuery(string.Empty);
         _filteredIndices.Clear();
 
         var fileInfo = new FileInfo(filePath);
@@ -83,26 +89,31 @@ public class LogFileReader : IDisposable
 
     public int LineCount => string.IsNullOrEmpty(_currentFilter) ? _lineOffsets.Count : _filteredIndices.Count;
 
+    private LogEntry GetEntryInternal(int actualIndex)
+    {
+        string raw = GetRawLine(actualIndex);
+        return _parser.Parse(actualIndex, raw);
+    }
+
     public LogEntry GetEntry(int index)
     {
         int actualIndex = string.IsNullOrEmpty(_currentFilter) ? index : _filteredIndices[index];
-        string raw = GetRawLine(actualIndex);
-        return _parser.Parse(actualIndex, raw);
+        return GetEntryInternal(actualIndex);
     }
 
     public void Search(string searchText)
     {
         _currentFilter = searchText;
+        _query = QueryParser.Parse(searchText);
         _filteredIndices.Clear();
 
         if (string.IsNullOrEmpty(searchText))
             return;
 
-        // Simple full-text search for now
         for (int i = 0; i < _lineOffsets.Count; i++)
         {
-            string line = GetRawLine(i);
-            if (line.Contains(searchText, StringComparison.OrdinalIgnoreCase))
+            var entry = GetEntryInternal(i);
+            if (_query.IsMatch(entry))
             {
                 _filteredIndices.Add(i);
             }

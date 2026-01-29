@@ -36,19 +36,42 @@
             <Button Content="Search" Command="{Binding SearchCommand}" Padding="10,5" Grid.Column="2"/>
         </Grid>
 
-        <ListBox Grid.Row="1" ItemsSource="{Binding LogLines}" VirtualizingStackPanel.IsVirtualizing="True" VirtualizingStackPanel.VirtualizationMode="Recycling">
-            <ListBox.ItemTemplate>
-                <DataTemplate>
-                    <StackPanel Orientation="Horizontal">
-                        <TextBlock Text="{Binding Timestamp, StringFormat='{}{0:yyyy-MM-dd HH:mm:ss}'}" Foreground="Gray" Margin="0,0,10,0" FontFamily="Consolas"/>
-                        <TextBlock Text="{Binding Level}" Width="50" Margin="0,0,10,0" FontWeight="Bold" FontFamily="Consolas"/>
-                        <TextBlock FontFamily="Consolas"
-                                   services:TextBlockExtensions.OriginalText="{Binding Message}"
-                                   services:TextBlockExtensions.HighlightText="{Binding DataContext.SearchText, RelativeSource={RelativeSource AncestorType=Window}}"/>
-                    </StackPanel>
-                </DataTemplate>
-            </ListBox.ItemTemplate>
-        </ListBox>
+        <Grid Grid.Row="1">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="200"/>
+                <ColumnDefinition Width="*"/>
+            </Grid.ColumnDefinitions>
+
+            <GroupBox Header="Fields" Margin="5" Grid.Column="0">
+                <ItemsControl ItemsSource="{Binding Fields}">
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate>
+                            <Button Content="{Binding Name}" 
+                                    Command="{Binding DataContext.ApplyFilterCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                    CommandParameter="{Binding Name, StringFormat='\{0\}:'}"
+                                    HorizontalContentAlignment="Left"
+                                    Margin="0,2"
+                                    Background="Transparent"
+                                    BorderThickness="0"/>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+            </GroupBox>
+
+            <ListBox Grid.Column="1" ItemsSource="{Binding LogLines}" VirtualizingStackPanel.IsVirtualizing="True" VirtualizingStackPanel.VirtualizationMode="Recycling">
+                <ListBox.ItemTemplate>
+                    <DataTemplate>
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="{Binding Timestamp, StringFormat='{}{0:yyyy-MM-dd HH:mm:ss}'}" Foreground="Gray" Margin="0,0,10,0" FontFamily="Consolas"/>
+                            <TextBlock Text="{Binding Level}" Width="50" Margin="0,0,10,0" FontWeight="Bold" FontFamily="Consolas"/>
+                            <TextBlock FontFamily="Consolas"
+                                       services:TextBlockExtensions.OriginalText="{Binding Message}"
+                                       services:TextBlockExtensions.HighlightText="{Binding DataContext.SearchText, RelativeSource={RelativeSource AncestorType=Window}}"/>
+                        </StackPanel>
+                    </DataTemplate>
+                </ListBox.ItemTemplate>
+            </ListBox>
+        </Grid>
 
         <StatusBar Grid.Row="2">
             <StatusBarItem>

@@ -18,10 +18,10 @@ This document outlines the development milestones for the Local Log Processor, a
 
 ## Milestone 3: Advanced Filtering (Kibana-like)
 *Goal: Provide a rich query experience for complex data analysis.*
-- [ ] Implement a query parser for field-specific searches (e.g., `level:ERROR`).
-- [ ] Support logical operators: `AND`, `OR`, `NOT`.
-- [ ] Add a "Fields" sidebar to toggle visibility and filter by unique values.
-- [ ] Support for time-range filtering.
+- [x] Implement a query parser for field-specific searches (e.g., `level:ERROR`).
+- [x] Support logical operators: `AND`, `OR`, `NOT`.
+- [x] Add a "Fields" sidebar to toggle visibility and filter by unique values.
+- [x] Support for time-range filtering.
 
 ## Milestone 4: Performance Optimization & Indexing
 *Goal: Ensure near-instant performance on multi-gigabyte files.*
