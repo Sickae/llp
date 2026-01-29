@@ -97,28 +97,51 @@ public class LogFileReader : IDisposable
         int b;
         var newLines = new List<(string Content, int Index)>();
 
+        var buffer = new List<byte>();
         while ((b = fs.ReadByte()) != -1)
         {
             offset++;
+            buffer.Add((byte)b);
             if (b == '\n')
             {
                 int index = _lineOffsets.Count;
                 _lineOffsets.Add(offset);
                 
-                // Index new line
-                var line = GetRawLine(index);
+                // Get line from buffer
+                var lineBytes = buffer.ToArray();
+                var line = Encoding.UTF8.GetString(lineBytes).TrimEnd('\r', '\n');
+                buffer.Clear();
+                
                 newLines.Add((line, index));
+
+                // Clear parser cache or similar if needed, but here we just need the entry
+                var entry = _parser.Parse(index, line);
+                // System.Console.WriteLine($"[DEBUG_LOG] Tail detected line: {line}");
+                // System.Console.WriteLine($"[DEBUG_LOG] Parsed entry message: {entry.Message}");
 
                 // If filter active, check if match
                 if (!string.IsNullOrEmpty(_currentFilter))
                 {
-                    var entry = GetEntryInternal(index);
                     if (_query.IsMatch(entry))
                     {
                         _filteredIndices.Add(index);
                     }
                 }
             }
+        }
+        
+        if (buffer.Count > 0)
+        {
+             // Handle case where file doesn't end with newline
+             int index = _lineOffsets.Count;
+             _lineOffsets.Add(offset);
+             var line = Encoding.UTF8.GetString(buffer.ToArray());
+             newLines.Add((line, index));
+             var entry = _parser.Parse(index, line);
+             if (!string.IsNullOrEmpty(_currentFilter) && _query.IsMatch(entry))
+             {
+                 _filteredIndices.Add(index);
+             }
         }
         
         _fileLength = newLength;
@@ -191,7 +214,10 @@ public class LogFileReader : IDisposable
     private LogEntry GetEntryInternal(int actualIndex)
     {
         string raw = GetRawLine(actualIndex);
-        return _parser.Parse(actualIndex, raw);
+        var entry = _parser.Parse(actualIndex, raw);
+        // System.Console.WriteLine($"[DEBUG_LOG] GetEntryInternal({actualIndex}) raw: '{raw}'");
+        // System.Console.WriteLine($"[DEBUG_LOG] GetEntryInternal({actualIndex}) message: '{entry.Message}'");
+        return entry;
     }
 
     public LogEntry GetEntry(int index)
@@ -238,15 +264,43 @@ public class LogFileReader : IDisposable
 
         long start = _lineOffsets[index];
         long end = (index + 1 < _lineOffsets.Count) ? _lineOffsets[index + 1] : _fileLength;
-        int length = (int)(end - start);
 
+        // If the line was just appended, it might be beyond the MMF's initial size.
+        // MemoryMappedFile.CreateFromFile(fs, ...) with fs as FileStream 
+        // does not automatically expand the mapping when the file grows.
+        
+        int length = (int)(end - start);
         if (length <= 0) return string.Empty;
 
-        using var accessor = _mmf.CreateViewAccessor(start, length, MemoryMappedFileAccess.Read);
-        byte[] buffer = new byte[length];
-        accessor.ReadArray(0, buffer, 0, length);
+        // Try to use MMF first (best performance for historical logs)
+        try
+        {
+            // We only use MMF if the range is within what we initially mapped.
+            // In a real app, we might want to re-map occasionally.
+            using var accessor = _mmf.CreateViewAccessor(start, length, MemoryMappedFileAccess.Read);
+            byte[] buffer = new byte[length];
+            accessor.ReadArray(0, buffer, 0, length);
+            return Encoding.UTF8.GetString(buffer).TrimEnd('\r', '\n');
+        }
+        catch
+        {
+            // Fallback to direct file read for appended lines (Tail -f) 
+            // or if MMF accessor creation fails (e.g. beyond initial size)
+            if (_filePath != null)
+            {
+                try
+                {
+                    using var fs = new FileStream(_filePath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
+                    fs.Seek(start, SeekOrigin.Begin);
+                    byte[] buffer = new byte[length];
+                    fs.Read(buffer, 0, length);
+                    return Encoding.UTF8.GetString(buffer).TrimEnd('\r', '\n');
+                }
+                catch { }
+            }
+        }
 
-        return Encoding.UTF8.GetString(buffer).TrimEnd('\r', '\n');
+        return string.Empty;
     }
 
     public void Dispose()

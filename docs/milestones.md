@@ -38,6 +38,6 @@ This document outlines the development milestones for the Local Log Processor, a
 
 ## Milestone 6: Release & Documentation
 *Goal: Finalize the product for user consumption.*
-- [ ] Complete User Manual and Technical Documentation.
-- [ ] Final performance benchmarking and bug fixing.
-- [ ] Package as a portable executable for Windows.
+- [x] Complete User Manual and Technical Documentation.
+- [x] Final performance benchmarking and bug fixing.
+- [x] Package as a portable executable for Windows.

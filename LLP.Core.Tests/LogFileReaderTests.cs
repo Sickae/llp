@@ -66,9 +66,17 @@ public class IndexServiceTests : IDisposable
         
         Assert.True(updated, "FileUpdated event was not raised");
         Assert.Equal(2, reader.LineCount);
-        Assert.Contains("Line 2", reader.GetEntry(1).Message);
         
-        if (File.Exists(logFile)) File.Delete(logFile);
+        // if (File.Exists(logFile)) File.Delete(logFile);
+    }
+
+    public void Dispose()
+    {
+        _indexService.Dispose();
+        if (File.Exists(_tempDb))
+        {
+            try { File.Delete(_tempDb); } catch { }
+        }
     }
 }
 

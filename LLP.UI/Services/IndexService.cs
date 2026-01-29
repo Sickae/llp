@@ -94,7 +94,11 @@ public class IndexService : IDisposable
 
     public void Dispose()
     {
-        _currentTransaction?.Dispose();
+        try
+        {
+            _currentTransaction?.Dispose();
+        }
+        catch { }
         _currentTransaction = null;
         SqliteConnection.ClearAllPools();
         _connection?.Dispose();
