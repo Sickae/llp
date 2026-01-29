@@ -32,9 +32,12 @@ public class MainViewModel : INotifyPropertyChanged, IDisposable
         ToggleTailCommand = new RelayCommand(_ => IsTailEnabled = !IsTailEnabled);
         _logReader.FileUpdated += () => 
         {
-            App.Current.Dispatcher.Invoke(() => 
+            App.Current.Dispatcher.BeginInvoke(() => 
             {
-                LogLines.Refresh();
+                if (LogLines != null)
+                {
+                    LogLines.Refresh();
+                }
                 LineCount = _logReader.LineCount;
                 UpdateHistogram();
             });

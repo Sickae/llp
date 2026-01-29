@@ -39,7 +39,19 @@
             </TextBox>
             <Button Content="Search" Command="{Binding SearchCommand}" Padding="10,5" Grid.Column="2"/>
             <Button Content="Export" Command="{Binding ExportCommand}" Padding="10,5" Margin="5,0" Grid.Column="3"/>
-            <ToggleButton Content="Tail -f" IsChecked="{Binding IsTailEnabled}" Command="{Binding ToggleTailCommand}" Padding="10,5" Grid.Column="4"/>
+            <ToggleButton IsChecked="{Binding IsTailEnabled}" Padding="10,5" Grid.Column="4">
+                <ToggleButton.Style>
+                    <Style TargetType="ToggleButton">
+                        <Setter Property="Content" Value="Tail: OFF"/>
+                        <Style.Triggers>
+                            <Trigger Property="IsChecked" Value="True">
+                                <Setter Property="Content" Value="Tail: ON"/>
+                                <Setter Property="Background" Value="LightGreen"/>
+                            </Trigger>
+                        </Style.Triggers>
+                    </Style>
+                </ToggleButton.Style>
+            </ToggleButton>
         </Grid>
 
         <Grid Grid.Row="1">
@@ -79,7 +91,7 @@
                 </ItemsControl>
             </GroupBox>
 
-            <ListBox Grid.Row="1" Grid.Column="1" ItemsSource="{Binding LogLines}" VirtualizingStackPanel.IsVirtualizing="True" VirtualizingStackPanel.VirtualizationMode="Recycling">
+            <ListBox x:Name="LogListBox" Grid.Row="1" Grid.Column="1" ItemsSource="{Binding LogLines}" VirtualizingStackPanel.IsVirtualizing="True" VirtualizingStackPanel.VirtualizationMode="Recycling">
                 <ListBox.ItemTemplate>
                     <DataTemplate>
                         <StackPanel Orientation="Horizontal">

@@ -74,6 +74,12 @@ public class LogFileReader : IDisposable
         var fileName = Path.GetFileName(filePath);
         if (directory == null) return;
 
+        if (_watcher != null)
+        {
+            _watcher.EnableRaisingEvents = false;
+            _watcher.Dispose();
+        }
+
         _watcher = new FileSystemWatcher(directory, fileName);
         _watcher.NotifyFilter = NotifyFilters.Size | NotifyFilters.LastWrite;
         _watcher.Changed += OnFileChanged;
@@ -84,71 +90,87 @@ public class LogFileReader : IDisposable
     {
         if (!_isTailEnabled || _filePath == null) return;
 
-        // Small delay to allow file to be unlocked
-        Thread.Sleep(100);
-
-        long newLength = new FileInfo(_filePath).Length;
-        if (newLength <= _fileLength) return;
-
-        using var fs = new FileStream(_filePath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
-        fs.Seek(_fileLength, SeekOrigin.Begin);
-        
-        long offset = _fileLength;
-        int b;
-        var newLines = new List<(string Content, int Index)>();
-
-        var buffer = new List<byte>();
-        while ((b = fs.ReadByte()) != -1)
+        // Use lock or similar to prevent concurrent executions of OnFileChanged
+        lock (this)
         {
-            offset++;
-            buffer.Add((byte)b);
-            if (b == '\n')
+            // Small delay to allow file to be unlocked by the writer
+            // Reduced delay for better responsiveness, but kept some for safety
+            Thread.Sleep(50);
+
+            long newLength = 0;
+            try
             {
-                int index = _lineOffsets.Count;
-                _lineOffsets.Add(offset);
-                
-                // Get line from buffer
-                var lineBytes = buffer.ToArray();
-                var line = Encoding.UTF8.GetString(lineBytes).TrimEnd('\r', '\n');
-                buffer.Clear();
-                
-                newLines.Add((line, index));
+                var fi = new FileInfo(_filePath);
+                fi.Refresh(); // Force refresh of file info
+                newLength = fi.Length;
+            }
+            catch (IOException)
+            {
+                return;
+            }
 
-                // Clear parser cache or similar if needed, but here we just need the entry
-                var entry = _parser.Parse(index, line);
-                // System.Console.WriteLine($"[DEBUG_LOG] Tail detected line: {line}");
-                // System.Console.WriteLine($"[DEBUG_LOG] Parsed entry message: {entry.Message}");
+            if (newLength <= _fileLength) return;
 
-                // If filter active, check if match
-                if (!string.IsNullOrEmpty(_currentFilter))
+            try
+            {
+                using var fs = new FileStream(_filePath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
+                fs.Seek(_fileLength, SeekOrigin.Begin);
+                
+                long currentPos = _fileLength;
+                int b;
+                var newLines = new List<(string Content, int Index)>();
+
+                var buffer = new List<byte>();
+                while ((b = fs.ReadByte()) != -1)
                 {
-                    if (_query.IsMatch(entry))
+                    currentPos++;
+                    buffer.Add((byte)b);
+                    if (b == '\n')
                     {
-                        _filteredIndices.Add(index);
+                        int index = _lineOffsets.Count;
+                        _lineOffsets.Add(currentPos);
+                        
+                        var lineBytes = buffer.ToArray();
+                        var line = Encoding.UTF8.GetString(lineBytes).TrimEnd('\r', '\n');
+                        buffer.Clear();
+                        
+                        newLines.Add((line, index));
+                        var entry = _parser.Parse(index, line);
+
+                        if (!string.IsNullOrEmpty(_currentFilter))
+                        {
+                            if (_query.IsMatch(entry))
+                            {
+                                _filteredIndices.Add(index);
+                            }
+                        }
                     }
                 }
+                
+                if (buffer.Count > 0)
+                {
+                     int index = _lineOffsets.Count;
+                     _lineOffsets.Add(currentPos);
+                     var line = Encoding.UTF8.GetString(buffer.ToArray());
+                     newLines.Add((line, index));
+                     var entry = _parser.Parse(index, line);
+                     if (!string.IsNullOrEmpty(_currentFilter) && _query.IsMatch(entry))
+                     {
+                         _filteredIndices.Add(index);
+                     }
+                }
+                
+                _fileLength = currentPos;
+                if (newLines.Count > 0)
+                {
+                    _indexService.AddEntries(newLines);
+                    FileUpdated?.Invoke();
+                }
             }
-        }
-        
-        if (buffer.Count > 0)
-        {
-             // Handle case where file doesn't end with newline
-             int index = _lineOffsets.Count;
-             _lineOffsets.Add(offset);
-             var line = Encoding.UTF8.GetString(buffer.ToArray());
-             newLines.Add((line, index));
-             var entry = _parser.Parse(index, line);
-             if (!string.IsNullOrEmpty(_currentFilter) && _query.IsMatch(entry))
-             {
-                 _filteredIndices.Add(index);
-             }
-        }
-        
-        _fileLength = newLength;
-        if (newLines.Count > 0)
-        {
-            _indexService.AddEntries(newLines);
-            FileUpdated?.Invoke();
+            catch (Exception)
+            {
+                // File might still be locked
+            }
         }
     }
 
@@ -244,6 +266,10 @@ public class LogFileReader : IDisposable
                 _filteredIndices.AddRange(results);
                 return;
             }
+            
+            // If the query is empty, we don't need to do anything else (everything is visible)
+            if (string.IsNullOrEmpty(fullTextQuery.SearchText))
+                return;
         }
 
         // Fallback to linear scan for complex queries or if index is not ready/nothing found
