@@ -7,6 +7,7 @@ namespace LLP.UI.Services;
 public class IndexService : IDisposable
 {
     private SqliteConnection? _connection;
+    private SqliteTransaction? _currentTransaction;
     private string? _dbPath;
 
     public void Initialize(string logFilePath)
@@ -18,7 +19,7 @@ public class IndexService : IDisposable
         // For now, let's recreate it to ensure it's up to date.
         if (File.Exists(_dbPath))
         {
-            File.Delete(_dbPath);
+            try { File.Delete(_dbPath); } catch { }
         }
 
         _connection = new SqliteConnection($"Data Source={_dbPath}");
@@ -38,24 +39,36 @@ public class IndexService : IDisposable
     {
         if (_connection == null) return;
 
-        using var transaction = _connection.BeginTransaction();
-        using var command = _connection.CreateCommand();
-        command.CommandText = "INSERT INTO log_index (content, line_index) VALUES ($content, $line_index)";
-        var contentParam = command.CreateParameter();
-        contentParam.ParameterName = "$content";
-        command.Parameters.Add(contentParam);
-
-        var indexParam = command.CreateParameter();
-        indexParam.ParameterName = "$line_index";
-        command.Parameters.Add(indexParam);
-
-        foreach (var entry in entries)
+        _currentTransaction = _connection.BeginTransaction();
+        try
         {
-            contentParam.Value = entry.Content;
-            indexParam.Value = entry.LineIndex;
-            command.ExecuteNonQuery();
+            using var command = _connection.CreateCommand();
+            command.Transaction = _currentTransaction;
+            command.CommandText = "INSERT INTO log_index (content, line_index) VALUES ($content, $line_index)";
+            
+            var contentParam = command.CreateParameter();
+            contentParam.ParameterName = "$content";
+            command.Parameters.Add(contentParam);
+
+            var indexParam = command.CreateParameter();
+            indexParam.ParameterName = "$line_index";
+            command.Parameters.Add(indexParam);
+
+            command.Prepare();
+
+            foreach (var entry in entries)
+            {
+                contentParam.Value = entry.Content;
+                indexParam.Value = entry.LineIndex;
+                command.ExecuteNonQuery();
+            }
+            _currentTransaction.Commit();
         }
-        transaction.Commit();
+        finally
+        {
+            _currentTransaction.Dispose();
+            _currentTransaction = null;
+        }
     }
 
     public List<int> Search(string query)
@@ -81,6 +94,9 @@ public class IndexService : IDisposable
 
     public void Dispose()
     {
+        _currentTransaction?.Dispose();
+        _currentTransaction = null;
+        SqliteConnection.ClearAllPools();
         _connection?.Dispose();
         _connection = null;
         if (_dbPath != null && File.Exists(_dbPath))

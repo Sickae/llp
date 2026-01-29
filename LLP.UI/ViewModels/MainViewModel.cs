@@ -55,6 +55,8 @@ public class MainViewModel : INotifyPropertyChanged, IDisposable
         set { _isLoading = value; OnPropertyChanged(); }
     }
 
+    public bool IsIndexing => _logReader.IsIndexing;
+
     public int LineCount
     {
         get => _lineCount;

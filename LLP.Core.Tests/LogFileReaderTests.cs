@@ -5,8 +5,86 @@ using System.Text.Json;
 
 namespace LLP.UI.Tests;
 
+public class IndexServiceTests : IDisposable
+{
+    private readonly string _tempDb;
+    private readonly IndexService _indexService;
+
+    public IndexServiceTests()
+    {
+        _tempDb = Path.GetTempFileName() + ".db";
+        _indexService = new IndexService();
+        // Initialize expects a log file path and appends .idx.db
+        // To be safe, we'll use a path that will result in our tempDb
+        _indexService.Initialize(_tempDb.Replace(".idx.db", ""));
+    }
+
+    [Fact]
+    public void Search_ReturnsCorrectIndices()
+    {
+        var entries = new List<(string Content, int LineIndex)>
+        {
+            ("Error: Something failed", 0),
+            ("Info: Application started", 1),
+            ("Warning: Low memory", 2),
+            ("Error: Another failure", 3)
+        };
+
+        _indexService.AddEntries(entries);
+
+        var results = _indexService.Search("Error");
+        Assert.Equal(2, results.Count);
+        Assert.Contains(0, results);
+        Assert.Contains(3, results);
+    }
+
+    public void Dispose()
+    {
+        _indexService.Dispose();
+        if (File.Exists(_tempDb)) File.Delete(_tempDb);
+        string idxDb = _tempDb + ".idx.db";
+        if (File.Exists(idxDb)) File.Delete(idxDb);
+    }
+}
+
 public class LogFileReaderTests
 {
+    [Fact]
+    public async Task Search_UsesIndexWhenReady()
+    {
+        string filePath = Path.GetTempFileName();
+        string content = "Error 1\nInfo 1\nError 2\n";
+        File.WriteAllText(filePath, content);
+        using var reader = new LogFileReader();
+
+        try
+        {
+            await reader.OpenFileAsync(filePath);
+            
+            // Wait for indexing to complete
+            int timeout = 0;
+            while (reader.IsIndexing && timeout < 50) 
+            {
+                await Task.Delay(100);
+                timeout++;
+            }
+
+            // Act
+            reader.Search("Error");
+
+            // Assert
+            Assert.Equal(2, reader.LineCount);
+            Assert.Equal("Error 1", reader.GetEntry(0).RawContent);
+            Assert.Equal("Error 2", reader.GetEntry(1).RawContent);
+        }
+        finally
+        {
+            reader.Dispose();
+            if (File.Exists(filePath)) File.Delete(filePath);
+            if (File.Exists(filePath + ".idx.db")) File.Delete(filePath + ".idx.db");
+        }
+    }
+
     [Fact]
     public async Task QueryParser_ParsesFieldQuery()
     {

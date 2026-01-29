@@ -15,9 +15,10 @@ public class LogFileReader : IDisposable
     private IQuery _query = new FullTextQuery(string.Empty);
     private ILogParser _parser = new RawLogParser();
     private readonly IndexService _indexService = new();
-    private bool _isIndexed = false;
+    private bool _isIndexing = false;
+    private Task? _indexingTask;
 
-    public bool IsIndexed => _isIndexed;
+    public bool IsIndexing => _isIndexing;
 
     public ILogParser Parser
     {
@@ -50,6 +51,32 @@ public class LogFileReader : IDisposable
             sampleLines.Add(GetRawLine(i));
         }
         _parser = LogFormatDetector.Detect(sampleLines);
+
+        // Start background indexing
+        _indexService.Initialize(filePath);
+        _indexingTask = Task.Run(() => BackgroundIndex());
+    }
+
+    private void BackgroundIndex()
+    {
+        _isIndexing = true;
+        try
+        {
+            const int batchSize = 10000;
+            for (int i = 0; i < _lineOffsets.Count; i += batchSize)
+            {
+                var batch = new List<(string Content, int LineIndex)>();
+                for (int j = i; j < Math.Min(i + batchSize, _lineOffsets.Count); j++)
+                {
+                    batch.Add((GetRawLine(j), j));
+                }
+                _indexService.AddEntries(batch);
+            }
+        }
+        finally
+        {
+            _isIndexing = false;
+        }
     }
 
     private void ScanLineOffsets(string filePath, IProgress<double>? progress)
@@ -110,6 +137,18 @@ public class LogFileReader : IDisposable
         if (string.IsNullOrEmpty(searchText))
             return;
 
+        // If it's a simple full-text search and we have an index, use it
+        if (_query is FullTextQuery fullTextQuery && !_isIndexing)
+        {
+            var results = _indexService.Search(fullTextQuery.SearchText);
+            if (results.Count > 0)
+            {
+                _filteredIndices.AddRange(results);
+                return;
+            }
+        }
+
+        // Fallback to linear scan for complex queries or if index is not ready/nothing found
         for (int i = 0; i < _lineOffsets.Count; i++)
         {
             var entry = GetEntryInternal(i);
@@ -143,5 +182,6 @@ public class LogFileReader : IDisposable
         _mmf?.Dispose();
         _mmf = null;
         _lineOffsets.Clear();
+        _indexService.Dispose();
     }
 }

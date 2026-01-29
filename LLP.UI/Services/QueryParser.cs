@@ -10,6 +10,8 @@ public interface IQuery
 
 public class FullTextQuery(string searchText) : IQuery
 {
+    public string SearchText => searchText;
+
     public bool IsMatch(LogEntry entry)
     {
         if (string.IsNullOrEmpty(searchText)) return true;

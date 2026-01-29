@@ -25,9 +25,9 @@ This document outlines the development milestones for the Local Log Processor, a
 
 ## Milestone 4: Performance Optimization & Indexing
 *Goal: Ensure near-instant performance on multi-gigabyte files.*
-- [ ] Integrate a lightweight indexing solution (e.g., SQLite FTS5 or in-memory inverted index).
-- [ ] Background indexing of files upon opening.
-- [ ] Optimize memory usage for long-running sessions.
+- [x] Integrate a lightweight indexing solution (SQLite FTS5).
+- [x] Background indexing of files upon opening.
+- [x] Optimize memory usage by relying on Memory-Mapped Files and avoiding long-term caching of parsed entries.
 
 ## Milestone 5: Visualizations & Extras
 *Goal: Enhance user experience with visual insights and real-time features.*

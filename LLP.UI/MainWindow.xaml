@@ -89,6 +89,12 @@
                     <TextBlock Text="{Binding LoadingProgress, StringFormat=' {0:F1}%'}" Margin="5,0"/>
                 </StackPanel>
             </StatusBarItem>
+            <Separator/>
+            <StatusBarItem Visibility="{Binding IsIndexing, Converter={StaticResource BooleanToVisibilityConverter}}">
+                <StackPanel Orientation="Horizontal">
+                    <TextBlock Text="Indexing... " Foreground="Blue"/>
+                </StackPanel>
+            </StatusBarItem>
         </StatusBar>
     </Grid>
 </Window>
