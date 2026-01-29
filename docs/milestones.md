@@ -1,0 +1,43 @@
+# Project Milestones: Local Log Processor (LLP)
+
+This document outlines the development milestones for the Local Log Processor, a high-performance local log analysis tool.
+
+## Milestone 1: Foundation & High-Performance Loading
+*Goal: Establish the core architecture and prove the ability to open large files without crashing.*
+- [ ] Set up project structure and .NET 10 WPF boilerplate.
+- [ ] Implement `Memory-Mapped File` (MMF) reader for efficient disk access.
+- [ ] Implement UI Virtualization using `VirtualizingStackPanel` for the main log view.
+- [ ] Basic "Open File" functionality with progress reporting.
+
+## Milestone 2: Parsing & Basic Search
+*Goal: Transform raw text into structured data and enable simple filtering.*
+- [ ] Implement a pluggable parsing system (Regex-based and JSON-based).
+- [ ] Automatic detection of common log formats (date, level, message).
+- [ ] Add a basic text-search bar for full-text filtering.
+- [ ] Implement highlight functionality for search results.
+
+## Milestone 3: Advanced Filtering (Kibana-like)
+*Goal: Provide a rich query experience for complex data analysis.*
+- [ ] Implement a query parser for field-specific searches (e.g., `level:ERROR`).
+- [ ] Support logical operators: `AND`, `OR`, `NOT`.
+- [ ] Add a "Fields" sidebar to toggle visibility and filter by unique values.
+- [ ] Support for time-range filtering.
+
+## Milestone 4: Performance Optimization & Indexing
+*Goal: Ensure near-instant performance on multi-gigabyte files.*
+- [ ] Integrate a lightweight indexing solution (e.g., SQLite FTS5 or in-memory inverted index).
+- [ ] Background indexing of files upon opening.
+- [ ] Optimize memory usage for long-running sessions.
+
+## Milestone 5: Visualizations & Extras
+*Goal: Enhance user experience with visual insights and real-time features.*
+- [ ] Implement a frequency histogram (log counts over time).
+- [ ] Add "Tail -f" support for real-time log monitoring.
+- [ ] UI Polish: Color-coded log levels, dark mode support, and custom themes.
+- [ ] Export functionality (export filtered results to CSV/JSON).
+
+## Milestone 6: Release & Documentation
+*Goal: Finalize the product for user consumption.*
+- [ ] Complete User Manual and Technical Documentation.
+- [ ] Final performance benchmarking and bug fixing.
+- [ ] Package as a portable executable for Windows.
