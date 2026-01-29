@@ -64,16 +64,10 @@
                 <ColumnDefinition Width="*"/>
             </Grid.ColumnDefinitions>
 
-            <!-- Histogram Visualization (Placeholder for now due to assembly loading issues in some environments) -->
-            <Border Grid.Row="0" Grid.Column="1" Background="#F0F0F0" Margin="5">
+            <!-- Histogram Visualization -->
+            <Border x:Name="HistogramContainer" Grid.Row="0" Grid.Column="1" Background="#F0F0F0" Margin="5">
                 <TextBlock Text="Histogram: Log counts over time" HorizontalAlignment="Center" VerticalAlignment="Center" Foreground="Gray"/>
             </Border>
-
-            <!-- <lvc:CartesianChart Grid.Row="0" Grid.Column="1" 
-                                Series="{Binding Histogram.Series}"
-                                XAxes="{Binding Histogram.XAxes}"
-                                YAxes="{Binding Histogram.YAxes}"
-                                Margin="5"/> -->
 
             <GroupBox Header="Fields" Margin="5" Grid.Row="0" Grid.RowSpan="2" Grid.Column="0">
                 <ItemsControl ItemsSource="{Binding Fields}">

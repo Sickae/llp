@@ -184,14 +184,23 @@ public class MainViewModel : INotifyPropertyChanged, IDisposable
 
     private void UpdateHistogram()
     {
-        var timestamps = new List<DateTime>();
-        for (int i = 0; i < Math.Min(10000, _logReader.LineCount); i++)
+        // Use a background task to collect timestamps to keep UI responsive
+        Task.Run(() => 
         {
-            var entry = _logReader.GetEntry(i);
-            if (entry.Timestamp.HasValue)
-                timestamps.Add(entry.Timestamp.Value);
-        }
-        Histogram.UpdateData(timestamps);
+            var timestamps = new List<DateTime>();
+            int count = Math.Min(100000, _logReader.LineCount);
+            for (int i = 0; i < count; i++)
+            {
+                var entry = _logReader.GetEntry(i);
+                if (entry.Timestamp.HasValue)
+                    timestamps.Add(entry.Timestamp.Value);
+            }
+            
+            App.Current.Dispatcher.BeginInvoke(() => 
+            {
+                Histogram.UpdateData(timestamps);
+            });
+        });
     }
 
     private void ExtractFields()
