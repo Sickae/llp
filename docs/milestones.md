@@ -4,17 +4,17 @@ This document outlines the development milestones for the Local Log Processor, a
 
 ## Milestone 1: Foundation & High-Performance Loading
 *Goal: Establish the core architecture and prove the ability to open large files without crashing.*
-- [ ] Set up project structure and .NET 10 WPF boilerplate.
-- [ ] Implement `Memory-Mapped File` (MMF) reader for efficient disk access.
-- [ ] Implement UI Virtualization using `VirtualizingStackPanel` for the main log view.
-- [ ] Basic "Open File" functionality with progress reporting.
+- [x] Set up project structure and .NET 10 WPF boilerplate.
+- [x] Implement `Memory-Mapped File` (MMF) reader for efficient disk access.
+- [x] Implement UI Virtualization using `VirtualizingStackPanel` for the main log view.
+- [x] Basic "Open File" functionality with progress reporting.
 
 ## Milestone 2: Parsing & Basic Search
 *Goal: Transform raw text into structured data and enable simple filtering.*
-- [ ] Implement a pluggable parsing system (Regex-based and JSON-based).
-- [ ] Automatic detection of common log formats (date, level, message).
-- [ ] Add a basic text-search bar for full-text filtering.
-- [ ] Implement highlight functionality for search results.
+- [x] Implement a pluggable parsing system (Regex-based and JSON-based).
+- [x] Automatic detection of common log formats (date, level, message).
+- [x] Add a basic text-search bar for full-text filtering.
+- [x] Implement highlight functionality for search results.
 
 ## Milestone 3: Advanced Filtering (Kibana-like)
 *Goal: Provide a rich query experience for complex data analysis.*

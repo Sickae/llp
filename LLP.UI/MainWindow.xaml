@@ -4,9 +4,68 @@
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:LLP.UI"
+        xmlns:vm="clr-namespace:LLP.UI.ViewModels"
+        xmlns:services="clr-namespace:LLP.UI.Services"
         mc:Ignorable="d"
-        Title="MainWindow" Height="450" Width="800">
+        Title="Local Log Processor" Height="600" Width="1000">
+    <Window.Resources>
+        <BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter"/>
+    </Window.Resources>
+    <Window.DataContext>
+        <vm:MainViewModel />
+    </Window.DataContext>
     <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
 
+        <Grid Grid.Row="0" Margin="5">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="Auto"/>
+            </Grid.ColumnDefinitions>
+            <Button Content="Open Log File" Command="{Binding OpenFileCommand}" Padding="10,5" Grid.Column="0"/>
+            <TextBox Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged}" Margin="10,0" Grid.Column="1" VerticalContentAlignment="Center">
+                <TextBox.InputBindings>
+                    <KeyBinding Key="Enter" Command="{Binding SearchCommand}"/>
+                </TextBox.InputBindings>
+            </TextBox>
+            <Button Content="Search" Command="{Binding SearchCommand}" Padding="10,5" Grid.Column="2"/>
+        </Grid>
+
+        <ListBox Grid.Row="1" ItemsSource="{Binding LogLines}" VirtualizingStackPanel.IsVirtualizing="True" VirtualizingStackPanel.VirtualizationMode="Recycling">
+            <ListBox.ItemTemplate>
+                <DataTemplate>
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Text="{Binding Timestamp, StringFormat='{}{0:yyyy-MM-dd HH:mm:ss}'}" Foreground="Gray" Margin="0,0,10,0" FontFamily="Consolas"/>
+                        <TextBlock Text="{Binding Level}" Width="50" Margin="0,0,10,0" FontWeight="Bold" FontFamily="Consolas"/>
+                        <TextBlock FontFamily="Consolas"
+                                   services:TextBlockExtensions.OriginalText="{Binding Message}"
+                                   services:TextBlockExtensions.HighlightText="{Binding DataContext.SearchText, RelativeSource={RelativeSource AncestorType=Window}}"/>
+                    </StackPanel>
+                </DataTemplate>
+            </ListBox.ItemTemplate>
+        </ListBox>
+
+        <StatusBar Grid.Row="2">
+            <StatusBarItem>
+                <TextBlock Text="{Binding LineCount, StringFormat='Lines: {0}'}"/>
+            </StatusBarItem>
+            <Separator/>
+            <StatusBarItem>
+                <TextBlock Text="{Binding FilePath}" FontStyle="Italic"/>
+            </StatusBarItem>
+            <Separator/>
+            <StatusBarItem Visibility="{Binding IsLoading, Converter={StaticResource BooleanToVisibilityConverter}}">
+                <StackPanel Orientation="Horizontal">
+                    <TextBlock Text="Loading... "/>
+                    <ProgressBar Minimum="0" Maximum="100" Value="{Binding LoadingProgress}" Width="100" Height="15"/>
+                    <TextBlock Text="{Binding LoadingProgress, StringFormat=' {0:F1}%'}" Margin="5,0"/>
+                </StackPanel>
+            </StatusBarItem>
+        </StatusBar>
     </Grid>
 </Window>
