@@ -226,7 +226,8 @@ public class MainViewModel : INotifyPropertyChanged, IDisposable
     private void ExtractFields()
     {
         var fieldNames = new HashSet<string>();
-        for (int i = 0; i < Math.Min(1000, _logReader.LineCount); i++)
+        // Scan a larger sample of lines to catch more fields
+        for (int i = 0; i < Math.Min(5000, _logReader.LineCount); i++)
         {
             var entry = _logReader.GetEntry(i);
             if (entry.Level != null) fieldNames.Add("level");

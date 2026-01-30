@@ -259,6 +259,68 @@ public class LogFileReaderTests
     }
 
     [Fact]
+    public void JsonLogParser_ParsesNestedObjectsCorrectly()
+    {
+        // Arrange
+        var parser = new JsonLogParser();
+        string jsonLine = "{\"labels\": {\"CorrelationId\": \"123\", \"App\": {\"Name\": \"Test\"}}, \"status\": 200}";
+
+        // Act
+        var entry = parser.Parse(0, jsonLine);
+
+        // Assert
+        Assert.NotNull(entry.Fields);
+        Assert.Equal("123", entry.Fields["labels.CorrelationId"]);
+        Assert.Equal("Test", entry.Fields["labels.App.Name"]);
+        Assert.Equal("200", entry.Fields["status"]);
+    }
+
+    [Fact]
+    public void JsonLogParser_ParsesArraysCorrectly()
+    {
+        // Arrange
+        var parser = new JsonLogParser();
+        string jsonLine = "{\"tags\": [\"error\", \"web\"], \"meta\": {\"ids\": [1, 2]}}";
+
+        // Act
+        var entry = parser.Parse(0, jsonLine);
+
+        // Assert
+        Assert.NotNull(entry.Fields);
+        Assert.Equal("error", entry.Fields["tags[0]"]);
+        Assert.Equal("web", entry.Fields["tags[1]"]);
+        Assert.Equal("1", entry.Fields["meta.ids[0]"]);
+        Assert.Equal("2", entry.Fields["meta.ids[1]"]);
+    }
+
+    [Fact]
+    public async Task Search_FiltersNestedJsonFields()
+    {
+        // Arrange
+        string filePath = Path.GetTempFileName();
+        string content = "{\"labels\":{\"CorrelationId\":\"abc\"}}\n{\"labels\":{\"CorrelationId\":\"def\"}}\n";
+        File.WriteAllText(filePath, content);
+        using var reader = new LogFileReader();
+
+        try
+        {
+            await reader.OpenFileAsync(filePath);
+
+            // Act
+            reader.Search("labels.CorrelationId:abc");
+
+            // Assert
+            Assert.Equal(1, reader.LineCount);
+            Assert.Contains("abc", reader.GetEntry(0).RawContent);
+        }
+        finally
+        {
+            reader.Dispose();
+            if (File.Exists(filePath)) File.Delete(filePath);
+        }
+    }
+
+    [Fact]
     public async Task RegexLogParser_ParsesCorrectly()
     {
         // Arrange

@@ -39,16 +39,42 @@ public class JsonLogParser : ILogParser
             }
 
             var fields = new Dictionary<string, string>();
-            foreach (var property in root.EnumerateObject())
-            {
-                fields[property.Name] = property.Value.ToString() ?? "";
-            }
+            FlattenElement(root, fields, "");
 
             return new LogEntry(index, rawContent, timestamp, level, message, fields);
         }
         catch (JsonException)
         {
             return new LogEntry(index, rawContent, Message: rawContent);
+        }
+    }
+
+    private void FlattenElement(JsonElement element, Dictionary<string, string> fields, string prefix)
+    {
+        switch (element.ValueKind)
+        {
+            case JsonValueKind.Object:
+                foreach (var property in element.EnumerateObject())
+                {
+                    string name = string.IsNullOrEmpty(prefix) ? property.Name : $"{prefix}.{property.Name}";
+                    FlattenElement(property.Value, fields, name);
+                }
+                break;
+            case JsonValueKind.Array:
+                int index = 0;
+                foreach (var item in element.EnumerateArray())
+                {
+                    string name = $"{prefix}[{index}]";
+                    FlattenElement(item, fields, name);
+                    index++;
+                }
+                break;
+            default:
+                if (!string.IsNullOrEmpty(prefix))
+                {
+                    fields[prefix] = element.ToString() ?? "";
+                }
+                break;
         }
     }
 
