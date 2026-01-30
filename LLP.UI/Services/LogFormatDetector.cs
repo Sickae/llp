@@ -23,10 +23,11 @@ public static class LogFormatDetector
 
         // Check for common Regex patterns
         // 1. [2024-01-29 15:20:00] INFO: Message
+        // 2. 2024-01-29 15:20:00 [INFO] Message
         var regexPatterns = new[]
         {
-            new { Name = "Standard", Pattern = @"^\[?(?<timestamp>\d{4}-\d{2}-\d{2}\s\d{2}:\d{2}:\d{2})\]?\s+(?<level>\w+):?\s+(?<message>.*)$", Format = "yyyy-MM-dd HH:mm:ss" },
-            new { Name = "ISO", Pattern = @"^(?<timestamp>\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.?\d*)Z?\s+(?<level>\w+)\s+(?<message>.*)$", Format = "yyyy-MM-ddTHH:mm:ss" }
+            new { Name = "Standard", Pattern = @"^\[?(?<timestamp>\d{4}-\d{2}-\d{2}\s\d{2}:\d{2}:\d{2}(\.?\d*)?)\]?\s+\[?(?<level>\w+)\]?:?\s+(?<message>.*)$", Format = "yyyy-MM-dd HH:mm:ss" },
+            new { Name = "ISO", Pattern = @"^(?<timestamp>\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.?\d*)Z?\s+\[?(?<level>\w+)\]?\s+(?<message>.*)$", Format = "yyyy-MM-ddTHH:mm:ss" }
         };
 
         foreach (var p in regexPatterns)

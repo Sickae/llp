@@ -90,22 +90,38 @@
                 </ItemsControl>
             </GroupBox>
 
-            <ListBox x:Name="LogListBox" Grid.Row="1" Grid.Column="1" ItemsSource="{Binding LogLines}" 
-                     SelectedItem="{Binding SelectedLogEntry}"
-                     VirtualizingStackPanel.IsVirtualizing="True" VirtualizingStackPanel.VirtualizationMode="Recycling">
-                <ListBox.ItemTemplate>
-                    <DataTemplate>
-                        <StackPanel Orientation="Horizontal">
-                            <TextBlock Text="{Binding Timestamp, StringFormat='{}{0:yyyy-MM-dd HH:mm:ss}'}" Foreground="Gray" Margin="0,0,10,0" FontFamily="Consolas"/>
-                            <TextBlock Text="{Binding Level}" Width="50" Margin="0,0,10,0" FontWeight="Bold" FontFamily="Consolas"
-                                       Foreground="{Binding Level, Converter={StaticResource LogLevelToColorConverter}}"/>
-                            <TextBlock FontFamily="Consolas"
-                                       services:TextBlockExtensions.OriginalText="{Binding Message}"
-                                       services:TextBlockExtensions.HighlightText="{Binding DataContext.SearchText, RelativeSource={RelativeSource AncestorType=Window}}"/>
-                        </StackPanel>
-                    </DataTemplate>
-                </ListBox.ItemTemplate>
-            </ListBox>
+            <ListView x:Name="LogListBox" Grid.Row="1" Grid.Column="1" ItemsSource="{Binding LogLines}" 
+                      SelectedItem="{Binding SelectedLogEntry}"
+                      VirtualizingStackPanel.IsVirtualizing="True" VirtualizingStackPanel.VirtualizationMode="Recycling">
+                <ListView.View>
+                    <GridView>
+                        <GridViewColumn Header="Timestamp" Width="150">
+                            <GridViewColumn.CellTemplate>
+                                <DataTemplate>
+                                    <TextBlock Text="{Binding Timestamp, StringFormat='{}{0:yyyy-MM-dd HH:mm:ss}'}" Foreground="Gray" FontFamily="Consolas"/>
+                                </DataTemplate>
+                            </GridViewColumn.CellTemplate>
+                        </GridViewColumn>
+                        <GridViewColumn Header="Level" Width="80">
+                            <GridViewColumn.CellTemplate>
+                                <DataTemplate>
+                                    <TextBlock Text="{Binding Level}" FontWeight="Bold" FontFamily="Consolas"
+                                               Foreground="{Binding Level, Converter={StaticResource LogLevelToColorConverter}}"/>
+                                </DataTemplate>
+                            </GridViewColumn.CellTemplate>
+                        </GridViewColumn>
+                        <GridViewColumn Header="Message" Width="600">
+                            <GridViewColumn.CellTemplate>
+                                <DataTemplate>
+                                    <TextBlock FontFamily="Consolas"
+                                               services:TextBlockExtensions.OriginalText="{Binding Message}"
+                                               services:TextBlockExtensions.HighlightText="{Binding DataContext.SearchText, RelativeSource={RelativeSource AncestorType=Window}}"/>
+                                </DataTemplate>
+                            </GridViewColumn.CellTemplate>
+                        </GridViewColumn>
+                    </GridView>
+                </ListView.View>
+            </ListView>
 
             <GridSplitter Grid.Row="1" Grid.Column="2" Width="5" HorizontalAlignment="Stretch" Background="LightGray"/>
 

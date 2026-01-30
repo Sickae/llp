@@ -26,10 +26,17 @@ public class RegexLogParser : ILogParser
         }
 
         DateTime? timestamp = null;
-        if (match.Groups["timestamp"].Success && 
-            DateTime.TryParseExact(match.Groups["timestamp"].Value, _timestampFormat, CultureInfo.InvariantCulture, DateTimeStyles.None, out var dt))
+        if (match.Groups["timestamp"].Success)
         {
-            timestamp = dt;
+            string tsValue = match.Groups["timestamp"].Value;
+            if (DateTime.TryParseExact(tsValue, _timestampFormat, CultureInfo.InvariantCulture, DateTimeStyles.None, out var dt))
+            {
+                timestamp = dt;
+            }
+            else if (DateTime.TryParse(tsValue, CultureInfo.InvariantCulture, DateTimeStyles.None, out var dtFallback))
+            {
+                timestamp = dtFallback;
+            }
         }
 
         string? level = match.Groups["level"].Success ? match.Groups["level"].Value : null;

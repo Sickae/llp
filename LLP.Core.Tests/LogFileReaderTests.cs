@@ -294,6 +294,58 @@ public class LogFileReaderTests
     }
 
     [Fact]
+    public void LogLevelToColorConverter_ConvertsCorrectly()
+    {
+        var converter = new LogLevelToColorConverter();
+        
+        Assert.Equal(System.Windows.Media.Brushes.Red, converter.Convert("ERROR", typeof(System.Windows.Media.Brush), null, System.Globalization.CultureInfo.InvariantCulture));
+        Assert.Equal(System.Windows.Media.Brushes.Red, converter.Convert(" [ERR] ", typeof(System.Windows.Media.Brush), null, System.Globalization.CultureInfo.InvariantCulture));
+        Assert.Equal(System.Windows.Media.Brushes.Red, converter.Convert("[CRITICAL]", typeof(System.Windows.Media.Brush), null, System.Globalization.CultureInfo.InvariantCulture));
+        Assert.Equal(System.Windows.Media.Brushes.Orange, converter.Convert("WARN", typeof(System.Windows.Media.Brush), null, System.Globalization.CultureInfo.InvariantCulture));
+        Assert.Equal(System.Windows.Media.Brushes.Blue, converter.Convert("Information", typeof(System.Windows.Media.Brush), null, System.Globalization.CultureInfo.InvariantCulture));
+        Assert.Equal(System.Windows.Media.Brushes.Black, converter.Convert("UNKNOWN", typeof(System.Windows.Media.Brush), null, System.Globalization.CultureInfo.InvariantCulture));
+    }
+
+    [Fact]
+    public void JsonLogParser_ExtractsNestedLevel()
+    {
+        var parser = new JsonLogParser();
+        string json = "{\"labels\": {\"severity\": \"ERROR\"}, \"message\": \"test\"}";
+        var entry = parser.Parse(0, json);
+        Assert.Equal("ERROR", entry.Level);
+    }
+
+    [Fact]
+    public void JsonLogParser_ExtractsLogLevel()
+    {
+        var parser = new JsonLogParser();
+        string json = "{\"log\": {\"level\": \"debug\"}, \"message\": \"test\"}";
+        var entry = parser.Parse(0, json);
+        Assert.Equal("debug", entry.Level);
+    }
+
+    [Fact]
+    public void JsonLogParser_PrioritizesLogLevelOverNumericLevel()
+    {
+        var parser = new JsonLogParser();
+        string json = "{\"level\": 3, \"log\": {\"level\": \"info\"}, \"message\": \"test\"}";
+        var entry = parser.Parse(0, json);
+        Assert.Equal("info", entry.Level);
+    }
+
+    [Fact]
+    public void LogFormatDetector_DetectsLevelWithBrackets()
+    {
+        var sample = new[] { "2024-01-29 15:20:00 [INFO] Message" };
+        var parser = LogFormatDetector.Detect(sample) as RegexLogParser;
+        
+        Assert.NotNull(parser);
+        var entry = parser.Parse(0, sample[0]);
+        Assert.Equal("INFO", entry.Level);
+        Assert.Equal("Message", entry.Message);
+    }
+
+    [Fact]
     public async Task Search_FiltersNestedJsonFields()
     {
         // Arrange

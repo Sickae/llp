@@ -23,9 +23,32 @@ public class JsonLogParser : ILogParser
             }
 
             string? level = null;
-            if (TryGetProperty(root, new[] { "level", "severity", "Level" }, out var levelProp))
+            if (TryGetProperty(root, new[] { "log.level" }, out var logLevelProp))
             {
-                level = levelProp.GetString();
+                level = logLevelProp.ValueKind == JsonValueKind.String ? logLevelProp.GetString() : logLevelProp.ToString();
+            }
+
+            if (string.IsNullOrEmpty(level))
+            {
+                // Try searching in flattened fields (this handles nested fields like log.level if not at root)
+                var flattened = new Dictionary<string, string>();
+                FlattenElement(root, flattened, "");
+                if (flattened.TryGetValue("log.level", out var ll)) level = ll;
+                else if (flattened.TryGetValue("event.severity", out var es)) level = es;
+                else if (flattened.TryGetValue("labels.severity", out var ls)) level = ls;
+            }
+
+            if (string.IsNullOrEmpty(level) && TryGetProperty(root, new[] { "level", "severity", "Level" }, out var levelProp))
+            {
+                level = levelProp.ValueKind == JsonValueKind.String ? levelProp.GetString() : levelProp.ToString();
+            }
+            
+            if (string.IsNullOrEmpty(level))
+            {
+                // Last resort: check if "level" was flattened but maybe it wasn't at root
+                var flattened = new Dictionary<string, string>();
+                FlattenElement(root, flattened, "");
+                if (flattened.TryGetValue("level", out var l)) level = l;
             }
 
             string? message = null;
