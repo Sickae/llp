@@ -2,6 +2,8 @@
 
 LLP is a high-performance local log analysis tool designed to handle large files efficiently.
 
+**Note: This project is 100% AI-coded.**
+
 ## Features
 
 - **Large File Support**: Uses Memory-Mapped Files to open multi-gigabyte files instantly without high RAM usage.
