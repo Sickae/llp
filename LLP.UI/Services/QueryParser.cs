@@ -92,47 +92,55 @@ public static class QueryParser
                          .Select(m => m.Value.Trim('"'))
                          .ToList();
 
-        var queries = new List<IQuery>();
-        
-        // This is a VERY basic parser. A real one would need to handle precedence and nesting.
-        // For Milestone 3, we'll start with something functional but simple.
+        var orGroups = new List<List<IQuery>>();
+        var currentAndGroup = new List<IQuery>();
+        orGroups.Add(currentAndGroup);
         
         for (int i = 0; i < terms.Count; i++)
         {
             var term = terms[i];
             
-            if (term.Contains(':'))
+            if (term.Equals("OR", StringComparison.OrdinalIgnoreCase))
             {
-                var parts = term.Split(':', 2);
-                queries.Add(new FieldQuery(parts[0], parts[1]));
-            }
-            else if (term.Equals("AND", StringComparison.OrdinalIgnoreCase))
-            {
-                // Implicit in our current simple list processing
+                currentAndGroup = new List<IQuery>();
+                orGroups.Add(currentAndGroup);
                 continue;
             }
-            else if (term.Equals("NOT", StringComparison.OrdinalIgnoreCase) && i + 1 < terms.Count)
+
+            if (term.Equals("AND", StringComparison.OrdinalIgnoreCase))
+            {
+                continue;
+            }
+
+            if (term.Equals("NOT", StringComparison.OrdinalIgnoreCase) && i + 1 < terms.Count)
             {
                 var nextTerm = terms[++i];
-                if (nextTerm.Contains(':'))
-                {
-                    var parts = nextTerm.Split(':', 2);
-                    queries.Add(new NotQuery(new FieldQuery(parts[0], parts[1])));
-                }
-                else
-                {
-                    queries.Add(new NotQuery(new FullTextQuery(nextTerm)));
-                }
+                currentAndGroup.Add(new NotQuery(ParseTerm(nextTerm)));
             }
             else
             {
-                queries.Add(new FullTextQuery(term));
+                currentAndGroup.Add(ParseTerm(term));
             }
         }
 
-        if (queries.Count == 0) return new FullTextQuery(string.Empty);
-        if (queries.Count == 1) return queries[0];
+        var andQueries = orGroups
+            .Where(g => g.Count > 0)
+            .Select(g => g.Count == 1 ? g[0] : new AndQuery(g))
+            .ToList();
+
+        if (andQueries.Count == 0) return new FullTextQuery(string.Empty);
+        if (andQueries.Count == 1) return andQueries[0];
         
-        return new AndQuery(queries);
+        return new OrQuery(andQueries);
+    }
+
+    private static IQuery ParseTerm(string term)
+    {
+        if (term.Contains(':'))
+        {
+            var parts = term.Split(':', 2);
+            return new FieldQuery(parts[0], parts[1]);
+        }
+        return new FullTextQuery(term);
     }
 }
