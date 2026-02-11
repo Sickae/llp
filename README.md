@@ -6,6 +6,8 @@ Local Log Processor (LLP) is a high-performance, lightweight log analysis tool f
 
 ## 🚀 Key Features
 
+![Main View](docs/images/main_view.png)
+
 - **Large File Support**: Leverages Memory-Mapped Files (MMF) to open and browse multi-gigabyte files instantly without consuming excessive RAM.
 - **Near-Instant Search**: Powered by SQLite FTS5 for high-speed full-text and field-specific indexing.
 - **Kibana-like Query Language**: Supports a powerful search syntax including:
@@ -60,6 +62,8 @@ The executable will be located at:
 `LLP.UI\bin\Release\net10.0-windows\win-x64\publish\LLP.UI.exe`
 
 ## 🔍 Search Syntax Examples
+
+![Search View](docs/images/search_view.png)
 
 | Query | Description |
 |---|---|
